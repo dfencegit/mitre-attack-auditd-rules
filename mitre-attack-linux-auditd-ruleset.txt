@@ -1,0 +1,586 @@
+# By DFence Cyber Security Ltd
+# Linux Auditd Rule Set based on Mitre ATT&CK
+#
+# v0.1 - First Draft
+#
+
+# Remove any existing rules
+-D
+
+# Buffer Size
+## Feel free to increase this if the machine panic's
+-b 8192
+
+# Failure Mode
+## Possible values: 0 (silent), 1 (printk, print a failure message), 2 (panic, halt the system)
+-f 1
+
+# Ignore errors
+## e.g. caused by users or files not found in the local environment  
+-i 
+
+# Self Auditing ---------------------------------------------------------------
+
+## Audit the audit logs
+### Successful and unsuccessful attempts to read information from the audit records
+-w /var/log/audit/ -k auditlog
+
+## Auditd configuration
+### Modifications to audit configuration that occur while the audit collection functions are operating
+-w /etc/audit/ -p wa -k auditconfig
+-w /etc/libaudit.conf -p wa -k auditconfig
+-w /etc/audisp/ -p wa -k audispconfig
+
+## Monitor for use of audit management tools
+-w /sbin/auditctl -p x -k audittools
+-w /sbin/auditd -p x -k audittools
+
+# Filters ---------------------------------------------------------------------
+
+### We put these early because audit is a first match wins system.
+
+## Ignore SELinux AVC records
+##-a always,exclude -F msgtype=AVC
+
+## Ignore current working directory records
+-a always,exclude -F msgtype=CWD
+
+## Ignore EOE records (End Of Event, not needed)
+-a always,exclude -F msgtype=EOE
+
+## Cron jobs fill the logs with stuff we normally don't want (works with SELinux)
+-a never,user -F subj_type=crond_t
+-a exit,never -F subj_type=crond_t
+
+## This prevents chrony from overwhelming the logs
+##-a never,exit -F arch=b64 -S adjtimex -F auid=unset -F uid=chrony -F subj_type=chronyd_t
+
+## This is not very interesting and wastes a lot of space if the server is public facing
+-a always,exclude -F msgtype=CRYPTO_KEY_USER
+
+## VMWare tools
+-a exit,never -F arch=b32 -S fork -F success=0 -F path=/usr/lib/vmware-tools -F subj_type=initrc_t -F exit=-2
+-a exit,never -F arch=b64 -S fork -F success=0 -F path=/usr/lib/vmware-tools -F subj_type=initrc_t -F exit=-2
+
+### High Volume Event Filter (especially on Linux Workstations)
+-a exit,never -F arch=b32 -F dir=/dev/shm -k sharedmemaccess
+-a exit,never -F arch=b64 -F dir=/dev/shm -k sharedmemaccess
+-a exit,never -F arch=b32 -F dir=/var/lock/lvm -k locklvm
+-a exit,never -F arch=b64 -F dir=/var/lock/lvm -k locklvm
+
+# -----------------------------------------------------------------------
+#  ----------------------------Rules-------------------------------------
+# Arranged by Mitre ATT&CK Techniques
+# -----------------------------------------------------------------------
+# -----------------------------------------------------------------------
+
+# -----------------------------------------------------------------------
+# ATTACK_T1003 - OS Credential Dumping
+# -----------------------------------------------------------------------
+# ATACK_T1003_008
+-w /etc/group -p wa -k ATACK_T1003_008
+-w /etc/passwd -p wa -k ATACK_T1003_008
+-w /etc/gshadow -k ATACK_T1003_008
+-w /etc/shadow -k ATACK_T1003_008
+-a always,exit -F path=/bin/gpasswd -F perm=x -F auid>=500 -F auid!=4294967295 -k ATACK_T1003_008
+-a always,exit -F path=/usr/sbin/userhelper -F perm=x -F auid>=500 -F auid!=4294967295 -k ATACK_T1003_008
+
+# -----------------------------------------------------------------------
+# ATTACK_T1016 - System Network Configuration Discovery
+# -----------------------------------------------------------------------
+-w /etc/resolv.conf -k ATTACK_T1016
+-w /etc/hosts.allow -k ATTACK_T1016
+-w /etc/hosts.deny -k ATTACK_T1016
+-a always,exit -F path=/usr/sbin/usernetctl -F perm=x -F auid>=500 -F auid!=4294967295 -k ATTACK_T1016
+
+# -----------------------------------------------------------------------
+# ATTACK_T1018 - Remote System Discovery
+# -----------------------------------------------------------------------
+-a always,exit -F path=/bin/ping6 -F perm=x -F auid>=500 -F auid!=4294967295 -k ATTACK_T1018
+-a always,exit -F path=/bin/ping -F perm=x -F auid>=500 -F auid!=4294967295 -k ATTACK_T1018
+-w /usr/bin/smbclient -p x -k ATTACK_T1018
+-w /usr/bin/rpcclient -p x -k ATTACK_T1018
+-w /usr/bin/ldapsearch -p x -k ATTACK_T1018
+
+-w /usr/bin/smbmap -p x -k ATTACK_T1018
+-w /usr/bin/crackmapexec-p x -k ATTACK_T1018
+-w /usr/bin/enum4linux -p x -k ATTACK_T1018
+
+# -----------------------------------------------------------------------
+# ATTACK_T1021 - Remote Services
+# -----------------------------------------------------------------------
+-a always,exit -F path=/bin/Xorg -F perm=x -F auid>=500 -F auid!=4294967295 -k ATTACK_T1021
+-a always,exit -F path=/bin/rlogin -F perm=x -F auid>=500 -F auid!=4294967295 -k ATTACK_T1021
+-a always,exit -F path=/bin/rsh -F perm=x -F auid>=500 -F auid!=4294967295 -k ATTACK_T1021
+-a always,exit -F path=/usr/bin/rcp -F perm=x -F auid>=500 -F auid!=4294967295 -k ATTACK_T1021
+
+# -----------------------------------------------------------------------
+# ATTACK_T1033 - System Owner/User Discovery
+# -----------------------------------------------------------------------
+-w /usr/bin/w -p x -k ATTACK_T1033
+-w /usr/bin/who -p x -k ATTACK_T1033
+-w /usr/bin/whoami -p x -k ATTACK_T1033
+
+# -----------------------------------------------------------------------
+# ATTACK_T1037 - Boot or Logon Initialization Scripts
+# -----------------------------------------------------------------------
+-w /etc/inittab -p wa -k ATTACK_T1037
+-w /etc/init.d/ -p wa -k ATTACK_T1037
+-w /etc/init/ -p wa -k ATTACK_T1037
+# T1037.004 - RC Scripts
+-w /etc/rc.d/ -p wa -k ATTACK_T1037_004
+-w /etc/rc.local -p wa -k ATTACK_T1037_004
+
+# -----------------------------------------------------------------------
+# ATTACK_T1040 - Network Sniffing
+# -----------------------------------------------------------------------
+-w /usr/sbin/tcpdump -p x -k ATTACK_T1040
+-w /usr/bin/wireshark -p x -k ATTACK_T1040
+-w /usr/bin/tshark -p x -k ATTACK_T1040
+-w /usr/bin/rawshark -p x -k ATTACK_T1040
+
+# -----------------------------------------------------------------------
+# ATTACK_T1046 - Network Service Discovery
+# -----------------------------------------------------------------------
+-w /usr/bin/nmap -p x -k ATTACK_T1046
+-w /usr/sbin/tcpdump -p x -k ATTACK_T1046
+-w /usr/bin/hping -p x -k ATTACK_T1046
+-w /usr/bin/dig -p x -k ATTACK_T1046
+-w /usr/bin/host -p x -k ATTACK_T1046
+-w /usr/bin/whois -p x -k ATTACK_T1046
+
+# -----------------------------------------------------------------------
+# ATTACK_T1048 - Exfiltration Over Alternative Protocol
+# -----------------------------------------------------------------------
+-a always,exit -F arch=b64 -S socket -F a0=2  -k ATTACK_T1048
+-a always,exit -F arch=b64 -S socket -F a0=4 -k ATTACK_T1048
+-a always,exit -F arch=b64 -S socket -F a0=10 -k ATTACK_T1048
+
+# -----------------------------------------------------------------------
+# ATTACK_T1049 - System Network Connections Discovery
+# -----------------------------------------------------------------------
+-w /usr/bin/arp -p x -k ATTACK_T1049
+-w /usr/bin/lsof -p x -k ATTACK_T1049
+-w /usr/bin/nc -p x -k ATTACK_T1049
+-w /usr/bin/ncat -p x -k ATTACK_T1049
+-w /usr/bin/netstat -p x -k ATTACK_T1049
+-w /usr/sbin/route -p x -k ATTACK_T1049
+-w /usr/sbin/ss -p x -k ATTACK_T1049
+-w /usr/sbin/traceroute -p x -k ATTACK_T1049
+
+
+# -----------------------------------------------------------------------
+# ATTACK_T1053 - Scheduled Task/Job
+# -----------------------------------------------------------------------
+# ATTACK_T1053_002 - At
+-w /etc/at.allow -p wa -k ATTACK_T1053_002
+-w /etc/at.deny -p wa -k ATTACK_T1053_002
+-w /var/spool/at/ -p wa -k ATTACK_T1053_002
+# ATTACK_T1053_003 - Cron
+-w /etc/cron.allow -p wa -k ATTACK_T1053_003
+-w /etc/cron.deny -p wa -k ATTACK_T1053_003
+-w /etc/cron.d/ -p wa -k ATTACK_T1053_003
+-w /etc/cron.daily/ -p wa -k ATTACK_T1053_003
+-w /etc/cron.hourly/ -p wa -k ATTACK_T1053_003
+-w /etc/cron.monthly/ -p wa -k ATTACK_T1053_003
+-w /etc/cron.weekly/ -p wa -k ATTACK_T1053_003
+-w /etc/crontab -p wa -k ATTACK_T1053_003
+-w /var/spool/cron/crontabs/ -k ATTACK_T1053_003
+-w /etc/anacrontab -p wa -k ATTACK_T1053_003
+-a always,exit -F path=/usr/bin/crontab -F perm=x -F auid>=500 -F auid!=4294967295 -k ATTACK_T1053_003
+# ATTACK_T1053_006 - Systemd Timers
+-w /run/systemd/system/ -p wa -k ATTACK_T1053_006
+-w /etc/systemd/system/ -p wa -k ATTACK_T1053_006
+-w /etc/systemd/system-generators/ -p wa -k ATTACK_T1053_006
+-w /etc/systemd/user-generators/ -p wa -k ATTACK_T1053_006
+-w /usr/lib/systemd/system/ -p wa -k ATTACK_T1053_006
+-w /usr/lib/systemd/system-generators -p wa -k ATTACK_T1053_006
+-w /usr/lib/systemd/user-generators -p wa -k ATTACK_T1053_006
+
+# -----------------------------------------------------------------------
+# ATTACK_T1055 - Process Injection
+# -----------------------------------------------------------------------
+# ATTACK_T1055_008 - Ptrace System Calls
+-a exit,always -F arch=b32 -S ptrace -k ATTACK_T1055_008
+-a exit,always -F arch=b64 -S ptrace -k ATTACK_T1055_008
+-a always,exit -F arch=b32 -S ptrace -F a0=0x4 -k ATTACK_T1055_008
+-a always,exit -F arch=b64 -S ptrace -F a0=0x4 -k ATTACK_T1055_008
+-a always,exit -F arch=b32 -S ptrace -F a0=0x5 -k ATTACK_T1055_008
+-a always,exit -F arch=b64 -S ptrace -F a0=0x5 -k ATTACK_T1055_008
+-a always,exit -F arch=b32 -S ptrace -F a0=0x6 -k ATTACK_T1055_008
+-a always,exit -F arch=b64 -S ptrace -F a0=0x6 -k ATTACK_T1055_008
+
+# -----------------------------------------------------------------------
+# ATTACK_T1057 - Process Discovery
+# -----------------------------------------------------------------------
+-w /usr/bin/ps -p x -k ATTACK_T1057
+
+# -----------------------------------------------------------------------
+# ATTACK_T1059 - Command and Scripting Interpreter
+#  * Denied file operations by non-system users
+# -----------------------------------------------------------------------
+-a exit,always -F arch=b64 -S creat,open,openat,open_by_handle_at,truncate,ftruncate,chmod,rename,renameat,renameat2,setxattr,lsetxattr,removexattr,lremovexattr -F exit=-EACCES -F auid>=1000 -F auid!=-1 -k ATTACK_T1059
+-a exit,always -F arch=b64 -S creat,open,openat,open_by_handle_at,truncate,ftruncate,chmod,rename,renameat,renameat2,setxattr,lsetxattr,removexattr,lremovexattr -F exit=-EPERM -F auid>=1000 -F auid!=-1 -k ATTACK_T1059
+-a exit,always -F arch=b32 -S creat,open,openat,open_by_handle_at,truncate,ftruncate,chmod,rename,renameat,renameat2,setxattr,lsetxattr,removexattr,lremovexattr -F exit=-EACCES -F auid>=1000 -F auid!=-1 -k ATTACK_T1059
+-a exit,always -F arch=b32 -S creat,open,openat,open_by_handle_at,truncate,ftruncate,chmod,rename,renameat,renameat2,setxattr,lsetxattr,removexattr,lremovexattr -F exit=-EPERM -F auid>=1000 -F auid!=-1 -k ATTACK_T1059
+# ATTACK_T1059_004 - Unix Shell
+-a exit,always -F arch=b64 -F exe=/bin/bash -F success=1 -S connect -k ATTACK_T1059_004
+-a exit,always -F arch=b64 -F exe=/usr/bin/bash -F success=1 -S connect -k ATTACK_T1059_004
+-a exit,always -F arch=b32 -F exe=/bin/bash -F success=1 -S connect -k ATTACK_T1059_004
+-a exit,always -F arch=b32 -F exe=/usr/bin/bash -F success=1 -S connect -k ATTACK_T1059_004
+# Critical elements access failures
+-a exit,always -F arch=b64 -S open -F dir=/etc -F success=0 -k ATTACK_T1059_004
+-a exit,always -F arch=b64 -S open -F dir=/bin -F success=0 -k ATTACK_T1059_004
+-a exit,always -F arch=b64 -S open -F dir=/sbin -F success=0 -k ATTACK_T1059_004
+-a exit,always -F arch=b64 -S open -F dir=/usr/bin -F success=0 -k ATTACK_T1059_004
+-a exit,always -F arch=b64 -S open -F dir=/usr/sbin -F success=0 -k ATTACK_T1059_004
+-a exit,always -F arch=b64 -S open -F dir=/var -F success=0 -k ATTACK_T1059_004
+-a exit,always -F arch=b64 -S open -F dir=/home -F success=0 -k ATTACK_T1059_004
+-a exit,always -F arch=b64 -S open -F dir=/srv -F success=0 -k ATTACK_T1059_004
+-a always,exit -F dir=/home -F uid=0 -F auid!=4294967295 -k ATTACK_T1059_004
+
+# -----------------------------------------------------------------------
+# ATTACK_T1070 - Indicator Removal
+# -----------------------------------------------------------------------
+# ATTACK_T1070_004 - File Deletion
+-a always,exit -F arch=b32 -S rmdir -S unlink -S unlinkat -S rename -S renameat -F auid>=500 -F auid!=4294967295 -k ATTACK_T1070_004
+-a always,exit -F arch=b64 -S rmdir -S unlink -S unlinkat -S rename -S renameat -F auid>=500 -F auid!=4294967295 -k T1107_FiATTACK_T1070_004le_Deletion
+-a always,exit -F arch=b32 -S rmdir -S unlink -S unlinkat -S rename -S renameat -F auid=0 -k ATTACK_T1070_004 
+-a always,exit -F arch=b64 -S rmdir -S unlink -S unlinkat -S rename -S renameat -F auid=0 -k ATTACK_T1070_004
+-w /bin/rmdir -p x -k ATTACK_T1070
+-w /bin/rm -p x -k ATTACK_T1070
+# ATTACK_T1070_006 - Timestamp
+-a exit,always -F arch=b64 -S adjtimex -S settimeofday -S clock_settime -k ATTACK_T1070_006
+-a exit,always -F arch=b32 -S adjtimex -S settimeofday -S clock_settime -k ATTACK_T1070_006
+-w /etc/localtime -p wa -k ATTACK_T1070_006
+
+# -----------------------------------------------------------------------
+# ATTACK_T1071 - Application Layer Protocol
+# -----------------------------------------------------------------------
+# ATTACK_T1071_002 - File Transfer Protocols
+-w /bin/ftp -p x -k ATTACK_T1071_002
+-w /bin/scp -p x -k ATTACK_T1071_002
+
+# -----------------------------------------------------------------------
+# ATTACK_T1074 - Data Staged
+# -----------------------------------------------------------------------
+# ATTACK_T1074_001 - Local Data Staging
+-w /bin/dd -p x -k ATTACK_T1074_001
+-w /bin/cp -p x -k ATTACK_T1074_001
+-w /bin/mv -p x -k ATTACK_T1074_001
+-w /bin/mkdir -p x -k ATTACK_T1074_001
+
+# -----------------------------------------------------------------------
+# ATTACK_T1078 - Valid Accounts
+# -----------------------------------------------------------------------
+# ATTACK_T1078_003 - Local Accounts
+-w /bin/su -p x -k ATTACK_T1078_003
+-w /usr/bin/sudo -p x -k ATTACK_T1078_003
+-w /usr/sbin/suexec -p x -k ATTACK_T1078_003
+-a always,exit -F path=/sbin/pwck -F perm=x -F auid>=500 -F auid!=4294967295 -k ATTACK_T1078_003
+-a always,exit -F path=/usr/bin/newgrp -F perm=x -F auid>=500 -F auid!=4294967295 -k ATTACK_T1078_003
+
+# -----------------------------------------------------------------------
+# ATTACK_T1082 - System Information Discovery
+# -----------------------------------------------------------------------
+-w /etc/hostname -p r -k ATTACK_T1082
+-w /sbin/iptables -p x -k ATTACK_T1082
+-w /sbin/ifconfig -p x -k ATTACK_T1082
+-w /etc/login.defs -p wa -k ATTACK_T1082
+-w /etc/securetty -p wa -k ATTACK_T1082
+-w /var/log/faillog -p wa -k ATTACK_T1082
+-w /var/log/lastlog -p wa -k ATTACK_T1082
+-w /var/log/tallylog -p wa -k ATTACK_T1082
+
+# -----------------------------------------------------------------------
+# ATTACK_T1083 - File and Directory Discovery
+# -----------------------------------------------------------------------
+-w /bin/grep -p x -k ATTACK_T1083
+-w /bin/egrep -p x -k ATTACK_T1083
+-w /bin/cat -p x -k ATTACK_T1083
+-w /bin/find -p x -k ATTACK_T1083
+-w /bin/ls -p x -k ATTACK_T1083
+-w /bin/locate -p x -k ATTACK_T1083
+
+# -----------------------------------------------------------------------
+# ATTACK_T1095 - Non-Application Layer Protocol
+# -----------------------------------------------------------------------
+#Log 64 bit processes (a2!=6e filters local unix socket calls)
+-a exit,always -F arch=b64 -S connect -F a2!=110 -k ATTACK_T1095
+#Log 32 bit processes (a0=3 means only outbound sys_connect calls)
+-a exit,always -F arch=b32 -S socketcall -F a0=3 -k ATTACK_T1095
+
+# -----------------------------------------------------------------------
+# ATTACK_T1098 - Account Manipulation
+# -----------------------------------------------------------------------
+-a always,exit -F path=/usr/bin/chsh -F perm=x -F auid>=500 -F auid!=4294967295 -k ATTACK_T1098
+-a always,exit -F path=/usr/bin/chfn -F perm=x -F auid>=500 -F auid!=4294967295 -k ATTACK_T1098
+-a always,exit -F path=/usr/bin/chage -F perm=x -F auid>=500 -F auid!=4294967295 -k ATTACK_T1098
+-a always,exit -F path=/usr/libexec/openssh/ssh-keysign -F perm=x -F auid>=500 -F auid!=4294967295 -k T1078
+# ATTACK_T1098_004 - SSH Authorized Keys
+-a exit,always -F filetype=file -F obj_type=ssh_home_t -F perm=rwa -k ATTACK_T1098_004
+-w /etc/ssh/sshd_config -k ATTACK_T1098_004
+# ATTACK_T1098_007 - Additional Local or Domain Groups
+-w /usr/sbin/usermod -p x -k ATTACK_T1136_007
+-w /usr/sbin/groupmod -p x -k ATTACK_T1136_007
+
+# -----------------------------------------------------------------------
+# ATTACK_T1105 - Ingress Tool Transfer
+# -----------------------------------------------------------------------
+-w /usr/bin/curl -p x -k ATTACK_T1105
+-w /usr/bin/ftp -p x -k ATTACK_T1105
+-w /usr/bin/sftp -p x -k ATTACK_T1105
+-w /usr/bin/rsync -p x -k ATTACK_T1105
+-w /usr/bin/telnet -p x -k ATTACK_T1105
+-w /usr/bin/wget -p x -k ATTACK_T1105
+
+# -----------------------------------------------------------------------
+# ATTACK_T1136 - Create Account
+# -----------------------------------------------------------------------
+-w /usr/sbin/useradd -p x -k ATTACK_T1136
+-w /usr/sbin/userdel -p x -k ATTACK_T1136
+-w /usr/sbin/adduser -p x -k ATTACK_T1136
+-w /usr/sbin/groupadd -p x -k ATTACK_T1136
+-w /usr/sbin/groupdel -p x -k ATTACK_T1136
+-w /usr/sbin/addgroup -p x -k ATTACK_T1136
+
+# -----------------------------------------------------------------------
+# ATTACK_T1140 - Deobfuscate/Decode Files or Information
+# -----------------------------------------------------------------------
+-w /usr/bin/base64 -p x -k ATTACK_T1140
+-w /usr/bin/certutil -p x -k ATTACK_T1140
+#  * Fileless malware
+-a exit,always -F arch=b64 -S memfd_create -k ATTACK_T1140
+-a exit,always -F arch=b32 -S memfd_create -k ATTACK_T1140
+
+# -----------------------------------------------------------------------
+# ATTACK_T1200 - Hardware Additions
+# -----------------------------------------------------------------------
+-a always,exit -F arch=b64 -S mount -S umount2 -F auid!=-1 -k ATTACK_T1200
+-a always,exit -F arch=b32 -S mount -S umount -S umount2 -F auid!=-1 -k ATTACK_T1200
+-a always,exit -F arch=b64 -S swapon -S swapoff -F auid!=-1 -k ATTACK_T1200
+-a always,exit -F arch=b32 -S swapon -S swapoff -F auid!=-1 -k ATTACK_T1200
+
+# -----------------------------------------------------------------------
+# ATTACK_T1219 - Remote Access Tools
+# -----------------------------------------------------------------------
+-w /bin/nc -p x -k ATTACK_T1219
+-w /bin/netcat -p x -k ATTACK_T1219
+-w /usr/bin/ssh -p x -k ATTACK_T1219
+-w /usr/bin/socat -p x -k ATTACK_T1219
+# ATTACK_T1219_002 - Remote Desktop Software
+-w /usr/bin/rdesktop -p x -k ATTACK_T1219_002
+
+# -----------------------------------------------------------------------
+# ATTACK_1222 - File and Directory Permissions Modification
+# -----------------------------------------------------------------------
+# ATTACK_1222_002
+-a always,exit -F path=/bin/chgrp -F perm=x -F auid>=500 -F auid!=4294967295 -k ATACK_1222_002
+-a always,exit -F path=/usr/bin/setfacl -F perm=x -F auid>=500 -F auid!=4294967295 -k ATACK_1222_002
+-a always,exit -F path=/usr/sbin/semanage -F perm=x -F auid>=500 -F auid!=4294967295 -k ATACK_1222_002
+-a always,exit -F path=/usr/bin/chacl -F perm=x -F auid>=500 -F auid!=4294967295 -k ATACK_1222_002
+-a always,exit -F path=/usr/bin/chcon -F perm=x -F auid>=500 -F auid!=4294967295 -k ATACK_1222_002
+-a always,exit -F arch=b32 -S chmod -F auid>=500 -F auid!=4294967295 -k ATACK_1222_002
+-a always,exit -F arch=b32 -S chown -F auid>=500 -F auid!=4294967295 -k ATACK_1222_002
+-a always,exit -F arch=b32 -S fchmod -F auid>=500 -F auid!=4294967295 -k ATACK_1222_002
+-a always,exit -F arch=b32 -S fchmodat -F auid>=500 -F auid!=4294967295 -k ATACK_1222_002
+-a always,exit -F arch=b32 -S fchown -F auid>=500 -F auid!=4294967295 -k ATACK_1222_002
+-a always,exit -F arch=b32 -S fchownat -F auid>=500 -F auid!=4294967295 -k ATACK_1222_002
+-a always,exit -F arch=b32 -S fremovexattr -F auid>=500 -F auid!=4294967295 -k ATACK_1222_002
+-a always,exit -F arch=b32 -S fsetxattr -F auid>=500 -F auid!=4294967295 -k ATACK_1222_002
+-a always,exit -F arch=b32 -S lchown -F auid>=500 -F auid!=4294967295 -k ATACK_1222_002
+-a always,exit -F arch=b32 -S lremovexattr -F auid>=500 -F auid!=4294967295 -k ATACK_1222_002
+-a always,exit -F arch=b32 -S lsetxattr -F auid>=500 -F auid!=4294967295 -k ATACK_1222_002
+-a always,exit -F arch=b32 -S removexattr -F auid>=500 -F auid!=4294967295 -k ATACK_1222_002
+-a always,exit -F arch=b32 -S setxattr -F auid>=500 -F auid!=4294967295 -k ATACK_1222_002
+-a always,exit -F arch=b64 -S chmod  -F auid>=500 -F auid!=4294967295 -k ATACK_1222_002
+-a always,exit -F arch=b64 -S chown -F auid>=500 -F auid!=4294967295 -k ATACK_1222_002
+-a always,exit -F arch=b64 -S fchmod -F auid>=500 -F auid!=4294967295 -k ATACK_1222_002
+-a always,exit -F arch=b64 -S fchmodat -F auid>=500 -F auid!=4294967295 -k ATACK_1222_002
+-a always,exit -F arch=b64 -S fchown -F auid>=500 -F auid!=4294967295 -k ATACK_1222_002
+-a always,exit -F arch=b64 -S fchownat -F auid>=500 -F auid!=4294967295 -k ATACK_1222_002
+-a always,exit -F arch=b64 -S fremovexattr -F auid>=500 -F auid!=4294967295 -k ATACK_1222_002
+-a always,exit -F arch=b64 -S fsetxattr -F auid>=500 -F auid!=4294967295 -k ATACK_1222_002
+-a always,exit -F arch=b64 -S lchown -F auid>=500 -F auid!=4294967295 -k ATACK_1222_002
+-a always,exit -F arch=b64 -S lremovexattr -F auid>=500 -F auid!=4294967295 -k ATACK_1222_002
+-a always,exit -F arch=b64 -S lsetxattr -F auid>=500 -F auid!=4294967295 -k ATACK_1222_002
+-a always,exit -F arch=b64 -S removexattr -F auid>=500 -F auid!=4294967295 -k ATACK_1222_002
+-a always,exit -F arch=b64 -S setxattr -F auid>=500 -F auid!=4294967295 -k ATACK_1222_002
+
+# -----------------------------------------------------------------------
+# ATTACK_T1505 - Server Software Component
+# -----------------------------------------------------------------------
+-w /bin/install -p x -k ATTACK_T1505
+# RPM (Redhat/CentOS)
+-w /usr/bin/rpm -p x -k ATTACK_T1505
+-w /usr/bin/yum -p x -k ATTACK_T1505
+# YAST/Zypper/RPM (SuSE)
+-w /sbin/yast -p x -k ATTACK_T1505
+-w /sbin/yast2 -p x -k ATTACK_T1505
+-w /bin/rpm -p x -k ATTACK_T1505
+-w /usr/bin/zypper -k ATTACK_T1505
+# DPKG / APT-GET (Debian/Ubuntu)
+-w /usr/bin/dpkg -p x -k ATTACK_T1505
+-w /usr/bin/apt-add-repository -p x -k ATTACK_T1505
+-w /usr/bin/apt-get -p x -k ATTACK_T1505
+-w /usr/bin/aptitude -p x -k ATTACK_T1505
+
+# -----------------------------------------------------------------------
+# ATTACK_T1529 - System Shutdown/Reboot
+# -----------------------------------------------------------------------
+-w /sbin/shutdown -p x -k ATTACK_T1529
+-w /sbin/poweroff -p x -k ATTACK_T1529
+-w /sbin/reboot -p x -k ATTACK_T1529
+-w /sbin/halt -p x -k ATTACK_T1529
+
+# -----------------------------------------------------------------------
+# ATTACK_T1531 - Account Access Removal
+# -----------------------------------------------------------------------
+-a always,exit -F path=/usr/bin/passwd -F perm=x -F auid>=500 -F auid!=4294967295 -k ATTACK_T1531
+
+# -----------------------------------------------------------------------
+# ATTACK_T1546 - Event Triggered Execution
+# -----------------------------------------------------------------------
+-a exit,always -F arch=b64 -S mknod -S mknodat -k ATTACK_T1546
+-a exit,always -F arch=b32 -S mknod -S mknodat -k ATTACK_T1546
+# ATTACK_T1546_004 - Unix Shell Configuration Modification
+-w /etc/environment -p wa -k ATTACK_T1546_004
+-w /etc/profile -p wa -k ATTACK_T1546_004
+-w /etc/profile.d/ -p wa -k ATTACK_T1546_004
+-w /etc/login.defs -p wa -k ATTACK_T1546_004
+-w /etc/shells -p wa  -k ATTACK_T1546_004
+-w /etc/bashrc -p wa  -k ATTACK_T1546_004
+-w /etc/csh.cshrc -p wa  -k ATTACK_T1546_004
+-w /etc/csh.login -p wa  -k ATTACK_T1546_004
+
+# -----------------------------------------------------------------------
+# ATTACK_T1547 - Boot or Logon Autostart Execution
+# -----------------------------------------------------------------------
+-w /etc/sysctl.conf -p wa -k ATTACK_T1547
+-w /etc/sysctl.d -p wa -k ATTACK_T1547
+-w /boot/grub2/ -p wa -k ATTACK_T1547
+-w /boot/efi/ -p wa -k ATTACK_T1547
+-w /boot/loader/ -p wa -k ATTACK_T1547
+# ATTACK_T1547_006 - Kernel Modules and Extensions
+-w /sbin/insmod -p x -k ATTACK_T1547_006
+-w /sbin/rmmod -p x -k ATTACK_T1547_006
+-w /sbin/modprobe -p x -k ATTACK_T1547_006
+-w /etc/modprobe.conf -p wa -k ATTACK_T1547_006
+-w /etc/modprobe.d -p wa -k ATTACK_T1547_006
+#  * Module load/unload
+-a exit,always -F arch=b64 -S finit_module -S init_module -S delete_module -F auid!=-1 -k ATTACK_T1547_006
+-a exit,always -F arch=b32 -S finit_module -S init_module -S delete_module -F auid!=-1 -k ATTACK_T1547_006
+#  * Kexec
+-a exit,always -F arch=b64 -S kexec_load -S kexec_file_load -k ATTACK_T1547_006
+-a exit,always -F arch=b32 -S sys_kexec_load -k ATTACK_T1547_006
+
+# -----------------------------------------------------------------------
+# ATTACK_T1548 - Abuse Elevation Control Mechanism
+# -----------------------------------------------------------------------
+# ATTACK_T1548_001 - Setuid and Setgid
+-a exit,always -F arch=b64 -F auid>500 -F  uid=0 -F auid!=4294967295 -F auid!=1000 -S execve -k ATTACK_T1548_001
+-a exit,always -F arch=b32 -F auid>500 -F  uid=0 -F auid!=4294967295 -F auid!=1000 -S execve -k ATTACK_T1548_001
+-a always,exit -F arch=b64 -C auid!=uid -S execve -k ATTACK_T1548_001
+-a always,exit -F arch=b32 -C auid!=uid -S execve -k ATTACK_T1548_001
+# ATTACK_T1548.003 - Sudo and Sudo Caching
+-w /etc/sudoers -p wa -k ATTACK_T1548_003
+-w /etc/sudoers.d/ -p wa -k ATTACK_T1548_003
+-w /usr/bin/sudoedit -p x -k ATTACK_T1548_003
+
+# -----------------------------------------------------------------------
+# ATTACK_T1553 - Subvert Trust Controls
+# -----------------------------------------------------------------------
+# ATTACK_T1553_004 - Install Root Certificate
+-w /usr/bin/update-ca-trust -p x -k ATTACK_T1553_004
+-w /etc/pki/ca-trust/ -p wa -k ATTACK_T1553_004
+
+# -----------------------------------------------------------------------
+# ATTACK_T1556 - Modify Authentication Process
+# -----------------------------------------------------------------------
+# ATTACK_T1556_003 - Pluggable Authentication Modules
+-w /usr/bin/authselect -p x -k ATTACK_T1556_003
+-w /etc/authselect/ -p wa -k ATTACK_T1556_003
+-w /etc/pam.d/ -p wa -k ATTACK_T1556_003
+-w /etc/security/limits.conf -p wa  -k ATTACK_T1556_003
+-w /etc/security/limits.d -p wa  -k ATTACK_T1556_003
+-w /etc/security/pam_env.conf -p wa -k ATTACK_T1556_003
+-w /etc/security/namespace.conf -p wa -k ATTACK_T1556_003
+-w /etc/security/namespace.d -p wa -k ATTACK_T1556_003
+-w /etc/security/namespace.init -p wa -k ATTACK_T1556_003
+-a always,exit -F path=/usr/sbin/pam_timestamp_check -F perm=x -F auid>=500 -F auid!=4294967295 -k T1078
+-a always,exit -F path=/usr/sbin/unix_chkpwd -F perm=x -F auid>=500 -F auid!=4294967295 -k T1078
+
+# -----------------------------------------------------------------------
+# ATTACK_T1562 - Impair Defenses
+# -----------------------------------------------------------------------
+# ATTACK_T1562_001 - Disable or Modify Tools
+-w /usr/sbin/semanage -p x -k ATTACK_T1562_001
+-w /usr/sbin/setenforce -p x -k ATTACK_T1562_001
+-w /etc/selinux/ -p wa -k ATTACK_T1562_001
+-w /etc/security/ -p wa -k ATTACK_T1562_001
+-w /usr/bin/update-crypto-policies -p x -k ATTACK_T1562_001
+-w /etc/crypto-policies/ -p wa -k ATTACK_T1562_001
+# ATTACK_T1562_012 - Disable or Modify Linux Audit System
+-w /var/log/audit/ -p wa -k ATTACK_T1562_012
+-w /var/audit/ -p wa -k ATTACK_T1562_012
+-w /etc/audit/ -p wa -k ATTACK_T1562_012
+-w /etc/libaudit.conf -p wa -k ATTACK_T1562_012
+-w /etc/audisp/ -p wa -k ATTACK_T1562_012
+-w /usr/sbin/auditctl -p x -k ATTACK_T1562_012
+-w /usr/sbin/auditd -p x -k ATTACK_T1562_012
+-w /usr/sbin/augenrules -p x -k ATTACK_T1562_012
+-w /opt/splunkforwarder/ -p wa -k ATTACK_T1562_012
+
+# -----------------------------------------------------------------------
+# ATTACK_T1569 - System Services
+# -----------------------------------------------------------------------
+# ATTACK_T1569_003 - Systemctl
+-w /bin/systemctl -p wa -k ATTACK_T1569_003
+-w /etc/systemd/ -p wa -k ATTACK_T1569_003
+
+# -----------------------------------------------------------------------
+# ATTACK_1572 - Protocol Tunneling
+# -----------------------------------------------------------------------
+-w /usr/sbin/stunnel -p x -k ATTACK_1572
+
+# -----------------------------------------------------------------------
+# ATTACK_T1574 - Hijack Execution Flow
+# -----------------------------------------------------------------------
+# ATTACK_T1574_006 - Dynamic Linker Hijacking
+-w /etc/ld.so.preload -p wa -k ATTACK_T1574_006
+-w /etc/ld.so.conf -p wa -k ATTACK_T1574_006
+-w /etc/ld.so.conf.d/ -p wa -k ATTACK_T1574_006
+
+# -----------------------------------------------------------------------
+# ATTACK_T1592 - Gather Victim Host Information
+# -----------------------------------------------------------------------
+-w /etc/hosts -p wa -k ATTACK_T1592
+-w /etc/sysconfig/network -p wa -k ATTACK_T1592
+-w /etc/network/ -p wa -k ATTACK_T1592
+-a always,exit -F dir=/etc/NetworkManager/ -F perm=wa -k ATTACK_T1592
+-w /etc/sysconfig/network -p wa -k ATTACK_T1592
+
+# -----------------------------------------------------------------------
+# ATTACK_T1614 - System Location Discovery
+# -----------------------------------------------------------------------
+# ATTACK_T1614_001 - System Language Discovery
+-w /usr/bin/locale -p x -k ATTACK_T1614_001
+
+# -----------------------------------------------------------------------
+# ATTACK_T1652 - Device Driver Discovery
+# -----------------------------------------------------------------------
+-w /usr/sbin/lsmod -p x -k ATTACK_T1652
+-w /usr/sbin/modinfo -p x -k ATTACK_T1652
+
+
+
+
+
+
+
+
+
+
+
+# Make the configuration immutable --------------------------------------------
+##-e 2
