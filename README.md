@@ -1,2 +1,3 @@
-# mitre-attack-auditd-rules
-A set of Linux Auditd rules covering Mitre ATT&amp;CK Techniques
+# Mitre ATT&amp;CK Linux Audit Rules
+These files comprise a set of Linux auditd rules based around Mitre ATT&amp;CK Techniques.
+
