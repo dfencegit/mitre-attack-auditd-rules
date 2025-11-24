@@ -6,10 +6,15 @@
 -a exit,always -F arch=b64 -S creat,open,openat,open_by_handle_at,truncate,ftruncate,chmod,rename,renameat,renameat2,setxattr,lsetxattr,removexattr,lremovexattr -F exit=-EPERM -F auid>=1000 -F auid!=-1 -k ATTACK_T1059
 -a exit,always -F arch=b32 -S creat,open,openat,open_by_handle_at,truncate,ftruncate,chmod,rename,renameat,renameat2,setxattr,lsetxattr,removexattr,lremovexattr -F exit=-EACCES -F auid>=1000 -F auid!=-1 -k ATTACK_T1059
 -a exit,always -F arch=b32 -S creat,open,openat,open_by_handle_at,truncate,ftruncate,chmod,rename,renameat,renameat2,setxattr,lsetxattr,removexattr,lremovexattr -F exit=-EPERM -F auid>=1000 -F auid!=-1 -k ATTACK_T1059
--a always,exit -F arch=b64 -S execve -F comm=perl -k ATTACK_T1059
--a always,exit -F arch=b64 -S execve -F comm=ruby -k ATTACK_T1059
--a always,exit -F arch=b64 -S execve -F comm=php -k ATTACK_T1059
--a always,exit -F arch=b64 -S execve -F comm=node -k ATTACK_T1059
+# Filtering on comm not supported
+#-a always,exit -F arch=b64 -S execve -F comm=perl -k ATTACK_T1059
+#-a always,exit -F arch=b64 -S execve -F comm=ruby -k ATTACK_T1059
+#-a always,exit -F arch=b64 -S execve -F comm=php -k ATTACK_T1059
+#-a always,exit -F arch=b64 -S execve -F comm=node -k ATTACK_T1059
+-w /usr/bin/perl -p x -k ATTACK_T1059
+-w /usr/bin/ruby -p x -k ATTACK_T1059
+-w /usr/bin/php -p x -k ATTACK_T1059
+-w /usr/bin/node -p x -k ATTACK_T1059
 # ATTACK_T1059_004 - Unix Shell
 -a exit,always -F arch=b64 -F exe=/bin/bash -F success=1 -S connect -k ATTACK_T1059_004
 -a exit,always -F arch=b64 -F exe=/bin/csh -F success=1 -S connect -k ATTACK_T1059_004
@@ -24,8 +29,11 @@
 -a exit,always -F arch=b32 -F exe=/usr/bin/csh -F success=1 -S connect -k ATTACK_T1059_004
 -a exit,always -F arch=b32 -F exe=/usr/bin/sh -F success=1 -S connect -k ATTACK_T1059_004
 # ATTACK_T1059_006 - Python
--a always,exit -F arch=b64 -S execve -F comm=python -k ATTACK_T1059_006
--a always,exit -F arch=b64 -S execve -F comm=python3 -k ATTACK_T1059_006
+# Filtering on comm not supported
+#-a always,exit -F arch=b64 -S execve -F comm=python -k ATTACK_T1059_006
+#-a always,exit -F arch=b64 -S execve -F comm=python3 -k ATTACK_T1059_006
+-w /usr/bin/python -p x -k ATTACK_T1059_006
+-w /usr/bin/python3 -p x -k ATTACK_T1059_006
 # Critical elements access failures
 -a exit,always -F arch=b64 -S open -F dir=/etc -F success=0 -k ATTACK_T1059_004
 -a exit,always -F arch=b64 -S open -F dir=/bin -F success=0 -k ATTACK_T1059_004

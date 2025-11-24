@@ -10,5 +10,6 @@
 -a always,exit -F path=/usr/bin/xfreerdp -F perm=x -F auid>=500 -F auid!=4294967295 -k ATTACK_T1021
 -a always,exit -F path=/usr/bin/winexe -F perm=x -F auid>=500 -F auid!=4294967295 -k ATTACK_T1021
 -a always,exit -F path=/usr/bin/rcp -F perm=x -F auid>=500 -F auid!=4294967295 -k ATTACK_T102
--a always,exit -F arch=b64 -S execve -F comm=psexec.py -k ATTACK_T1021
--a always,exit -F arch=b64 -S execve -F comm=evil-winrm -k ATTACK_T1021
+# Filtering on comm not supported
+#-a always,exit -F arch=b64 -S execve -F comm=psexec.py -k ATTACK_T1021
+#-a always,exit -F arch=b64 -S execve -F comm=evil-winrm -k ATTACK_T1021

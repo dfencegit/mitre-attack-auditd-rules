@@ -1,10 +1,15 @@
 # -----------------------------------------------------------------------
 # ATTACK_T1190 - Exploit Public-Facing Application
 # -----------------------------------------------------------------------
--a always,exit -F arch=b64 -S execve -F comm=msfconsole -k ATTACK_T1190
--a always,exit -F arch=b64 -S execve -F comm=msfvenom -k ATTACK_T1190
--a always,exit -F arch=b64 -S execve -F comm=searchspolit -k ATTACK_T1190
--a always,exit -F arch=b64 -S execve -F comm=sqlmap -k ATTACK_T1190
+# Filtering on comm not supported
+#-a always,exit -F arch=b64 -S execve -F comm=msfconsole -k ATTACK_T1190
+#-a always,exit -F arch=b64 -S execve -F comm=msfvenom -k ATTACK_T1190
+#-a always,exit -F arch=b64 -S execve -F comm=searchspolit -k ATTACK_T1190
+#-a always,exit -F arch=b64 -S execve -F comm=sqlmap -k ATTACK_T1190
+-w /usr/sbin/msfconsole -p x -k ATTACK_T1190
+-w /usr/sbin/msfvenom -p x -k ATTACK_T1190
+-w /usr/sbin/searchspolit -p x -k ATTACK_T1190
+-w /usr/sbin/sqlmap -p x -k ATTACK_T1190
 
 
 

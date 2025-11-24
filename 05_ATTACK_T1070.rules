@@ -12,7 +12,9 @@
 -w /usr/bin/wipe -p x -k ATTACK_T1070
 -w /usr/bin/history -p x -k ATTACK_T1070
 -w /usr/bin/touch -p x -k ATTACK_T1070
--a always,exit -F arch=b64 -S execve -F comm=secure-delete -k ATTACK_T1070
+# Filtering on comm not supported
+#-a always,exit -F arch=b64 -S execve -F comm=secure-delete -k ATTACK_T1070
+-w /usr/bin/secure-delete -p x -k ATTACK_T1070
 # ATTACK_T1070_006 - Timestamp
 -a exit,always -F arch=b64 -S adjtimex -S settimeofday -S clock_settime -k ATTACK_T1070_006
 -a exit,always -F arch=b32 -S adjtimex -S settimeofday -S clock_settime -k ATTACK_T1070_006

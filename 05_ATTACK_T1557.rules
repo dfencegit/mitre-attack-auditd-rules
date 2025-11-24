@@ -1,4 +1,6 @@
 # -----------------------------------------------------------------------
 # ATTACK_T1557 - Adversary-in-the-Middle
 # -----------------------------------------------------------------------
--a always,exit -F arch=b64 -S execve -F comm=responder -k ATTACK_T1557
+# Filtering on comm not supported
+#-a always,exit -F arch=b64 -S execve -F comm=responder -k ATTACK_T1557
+-w /usr/bin/responder -p x -k ATTACK_T1557

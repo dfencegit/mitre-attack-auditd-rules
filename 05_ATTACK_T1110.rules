@@ -2,10 +2,18 @@
 # ATTACK_T1110 - Brute Force
 # -----------------------------------------------------------------------
 # ATTACK_T1110_002 - Password Cracking
--a always,exit -F arch=b64 -S execve -F comm=hydra -k ATTACK_T1110_002
--a always,exit -F arch=b64 -S execve -F comm=john -k ATTACK_T1110_002
--a always,exit -F arch=b64 -S execve -F comm=hashcat -k ATTACK_T1110_002
--a always,exit -F arch=b64 -S execve -F comm=medusa -k ATTACK_T1110_002
--a always,exit -F arch=b64 -S execve -F comm=ophcrack -k ATTACK_T1110_002
--a always,exit -F arch=b64 -S execve -F comm=mimikatz -k ATTACK_T1110_002
--a always,exit -F arch=b64 -S execve -F comm=lazagne -k ATTACK_T1110_002
+# Filtering on comm not supported
+#-a always,exit -F arch=b64 -S execve -F comm=hydra -k ATTACK_T1110_002
+#-a always,exit -F arch=b64 -S execve -F comm=john -k ATTACK_T1110_002
+#-a always,exit -F arch=b64 -S execve -F comm=hashcat -k ATTACK_T1110_002
+#-a always,exit -F arch=b64 -S execve -F comm=medusa -k ATTACK_T1110_002
+#-a always,exit -F arch=b64 -S execve -F comm=ophcrack -k ATTACK_T1110_002
+#-a always,exit -F arch=b64 -S execve -F comm=mimikatz -k ATTACK_T1110_002
+#-a always,exit -F arch=b64 -S execve -F comm=lazagne -k ATTACK_T1110_002
+-w /usr/sbin/hydra -p x -k ATTACK_T1110_002
+-w /usr/sbin/john -p x -k ATTACK_T1110_002
+-w /usr/sbin/hashcat -p x -k ATTACK_T1110_002
+-w /usr/sbin/medusa -p x -k ATTACK_T1110_002
+-w /usr/sbin/ophcrack -p x -k ATTACK_T1110_002
+-w /usr/sbin/mimikatz -p x -k ATTACK_T1110_002
+-w /usr/sbin/lazagne -p x -k ATTACK_T1110_002

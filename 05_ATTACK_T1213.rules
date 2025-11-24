@@ -2,11 +2,17 @@
 # ATTACK_T1213 - Data from Information Repositories
 # -----------------------------------------------------------------------
 # ATTACK_T1213_006 - Databases
--a always,exit -F arch=b64 -S execve -F comm=mysql -k ATTACK_T1213_006
--a always,exit -F arch=b64 -S execve -F comm=mysqldump -k ATTACK_T1213_006
--a always,exit -F arch=b64 -S execve -F comm=psql -k ATTACK_T1213_006
--a always,exit -F arch=b64 -S execve -F comm=pg_dump -k ATTACK_T1213_006
--a always,exit -F arch=b64 -S execve -F comm=sqlite3 -k ATTACK_T1213_006
--a always,exit -F arch=b64 -S execve -F comm=mongodump -k ATTACK_T1213_006
-
+# Filtering on comm not supported
+#-a always,exit -F arch=b64 -S execve -F comm=mysql -k ATTACK_T1213_006
+#-a always,exit -F arch=b64 -S execve -F comm=mysqldump -k ATTACK_T1213_006
+#-a always,exit -F arch=b64 -S execve -F comm=psql -k ATTACK_T1213_006
+#-a always,exit -F arch=b64 -S execve -F comm=pg_dump -k ATTACK_T1213_006
+#-a always,exit -F arch=b64 -S execve -F comm=sqlite3 -k ATTACK_T1213_006
+#-a always,exit -F arch=b64 -S execve -F comm=mongodump -k ATTACK_T1213_006
+-w /usr/sbin/mysql -p x -k ATTACK_T1213_006
+-w /usr/sbin/mysqldump -p x -k ATTACK_T1213_006
+-w /usr/sbin/psql -p x -k ATTACK_T1213_006
+-w /usr/sbin/pg_dump -p x -k ATTACK_T1213_006
+-w /usr/sbin/sqlite3 -p x -k ATTACK_T1213_006
+-w /usr/sbin/mongodump -p x -k ATTACK_T1213_006
 

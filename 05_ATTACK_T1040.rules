@@ -1,7 +1,12 @@
 # -----------------------------------------------------------------------
 # ATTACK_T1040 - Network Sniffing
 # -----------------------------------------------------------------------
--a always,exit -F arch=b64 -S execve -F comm=tcpdump -k ATTACK_T1040
--a always,exit -F arch=b64 -S execve -F comm=wireshark -k ATTACK_T1040
--a always,exit -F arch=b64 -S execve -F comm=tshark -k ATTACK_T1040
--a always,exit -F arch=b64 -S execve -F comm=rawshark -k ATTACK_T1040
+# Filtering on comm not supported
+#-a always,exit -F arch=b64 -S execve -F comm=tcpdump -k ATTACK_T1040
+#-a always,exit -F arch=b64 -S execve -F comm=wireshark -k ATTACK_T1040
+#-a always,exit -F arch=b64 -S execve -F comm=tshark -k ATTACK_T1040
+#-a always,exit -F arch=b64 -S execve -F comm=rawshark -k ATTACK_T1040
+-w /usr/bin/tcpdump -p x -k ATTACK_T1040
+-w /usr/bin/wireshark -p x -k ATTACK_T1040
+-w /usr/bin/tshark -p x -k ATTACK_T1040
+-w /usr/bin/rawshark -p x -k ATTACK_T1040

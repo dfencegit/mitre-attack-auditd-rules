@@ -2,9 +2,16 @@
 # ATTACK_T1595 - Active Scanning
 # -----------------------------------------------------------------------
 # ATTACK_T1595_002 - Vulnerability Scanning
--a always,exit -F arch=b64 -S execve -F comm=nikto -k ATTACK_T1595_002
--a always,exit -F arch=b64 -S execve -F comm=wpscan -k ATTACK_T1595_002
--a always,exit -F arch=b64 -S execve -F comm=burpsuite -k ATTACK_T1595_002
--a always,exit -F arch=b64 -S execve -F comm=dirb -k ATTACK_T1595_002
--a always,exit -F arch=b64 -S execve -F comm=gobuster -k ATTACK_T1595_002
--a always,exit -F arch=b64 -S execve -F comm=wfuzz -k ATTACK_T1595_002
+# Filtering on comm not supported
+#-a always,exit -F arch=b64 -S execve -F comm=nikto -k ATTACK_T1595_002
+#-a always,exit -F arch=b64 -S execve -F comm=wpscan -k ATTACK_T1595_002
+#-a always,exit -F arch=b64 -S execve -F comm=burpsuite -k ATTACK_T1595_002
+#-a always,exit -F arch=b64 -S execve -F comm=dirb -k ATTACK_T1595_002
+#-a always,exit -F arch=b64 -S execve -F comm=gobuster -k ATTACK_T1595_002
+#-a always,exit -F arch=b64 -S execve -F comm=wfuzz -k ATTACK_T1595_002
+-w /usr/bin/nikto -p x -k ATTACK_T1595_002
+-w /usr/bin/wpscan -p x -k ATTACK_T1595_002
+-w /usr/bin/burpsuite -p x -k ATTACK_T1595_002
+-w /usr/bin/dirb -p x -k ATTACK_T1595_002
+-w /usr/bin/gobuster -p x -k ATTACK_T1595_002
+-w /usr/bin/wfuzz -p x -k ATTACK_T1595_002

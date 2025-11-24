@@ -1,8 +1,11 @@
 # -----------------------------------------------------------------------
 # ATTACK_T1571 - Non-Standard Port
 # -----------------------------------------------------------------------
--a always,exit -F arch=b64 -S execve -F comm=cryptcat -k ATTACK_T1571
--a always,exit -F arch=b64 -S execve -F comm=webshell -k ATTACK_T1571
+# Filtering on comm not supported
+#-a always,exit -F arch=b64 -S execve -F comm=cryptcat -k ATTACK_T1571
+#-a always,exit -F arch=b64 -S execve -F comm=webshell -k ATTACK_T1571
+-w /usr/bin/cryptcat -p x -k ATTACK_T1571
+-w /usr/bin/webshell -p x -k ATTACK_T1571
 -w /usr/bin/telnet -p x -k ATTACK_T1571
 
 

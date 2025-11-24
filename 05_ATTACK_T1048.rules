@@ -6,6 +6,10 @@
 -a always,exit -F arch=b64 -S socket -F a0=10 -k ATTACK_T1048
 -w /usr/bin/sftp -p x -k ATTACK_T1048
 -w /usr/bin/scp -p x -k ATTACK_T1048
--a always,exit -F arch=b64 -S execve -F comm=nc -k ATTACK_T1048
--a always,exit -F arch=b64 -S execve -F comm=netcat -k ATTACK_T1048
--a always,exit -F arch=b64 -S execve -F comm=socat -k ATTACK_T1048
+# Filtering on comm not supported
+#-a always,exit -F arch=b64 -S execve -F comm=nc -k ATTACK_T1048
+#-a always,exit -F arch=b64 -S execve -F comm=netcat -k ATTACK_T1048
+#-a always,exit -F arch=b64 -S execve -F comm=socat -k ATTACK_T1048
+-w /usr/bin/nc -p x -k ATTACK_T1048
+-w /usr/bin/netcat -p x -k ATTACK_T1048
+-w /usr/bin/socat -p x -k ATTACK_T1048
